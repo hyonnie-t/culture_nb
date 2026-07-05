@@ -344,16 +344,27 @@ function buildRound(items){
 
     if(c.type === "photo"){
       const img = document.createElement("img");
-      img.src = `images/${String(item.id).padStart(2,"0")}.jpg`;
-      img.alt = "문화재 사진";
-      img.onerror = function(){
-        front.innerHTML = "";
-        const ph = document.createElement("div");
-        ph.className = "photo-placeholder";
-        ph.style.background = placeholderColor(item.id);
-        ph.innerHTML = `<div class="num">${item.id}</div><div>사진 준비중</div>`;
-        front.appendChild(ph);
+      const exts = ["jpg", "png", "jpeg"];
+      let extIndex = 0;
+      const idNum = String(item.id).padStart(2, "0");
+
+      const tryNextExt = ()=>{
+        if(extIndex >= exts.length){
+          front.innerHTML = "";
+          const ph = document.createElement("div");
+          ph.className = "photo-placeholder";
+          ph.style.background = placeholderColor(item.id);
+          ph.innerHTML = `<div class="num">${item.id}</div><div>사진 준비중</div>`;
+          front.appendChild(ph);
+          return;
+        }
+        img.src = `images/${idNum}.${exts[extIndex]}`;
+        extIndex++;
       };
+
+      img.alt = "문화재 사진";
+      img.onerror = tryNextExt;
+      tryNextExt();
       front.appendChild(img);
     } else if(c.type === "name"){
       front.textContent = item.name;
