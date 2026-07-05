@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>남북국시대 문화 매칭 게임</title>
+<style>
+  :root{
+    --bg:#f4f1ea;
+    --card-back-1:#5b7fa6;
+    --card-back-2:#3f5f82;
+    --ink:#2b2b2b;
+    --accent:#c0562c;
+    --ok:#3a8a5a;
+    --panel:#ffffff;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:40px;
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--panel);
+    border-bottom:3px solid var(--accent);
+    padding:12px 16px;
+    display:flex; flex-wrap:wrap; gap:10px 20px;
+    align-items:center; justify-content:space-between;
+  }
+  h1{
+    font-size:20px; margin:0; white-space:nowrap;
+  }
+  .stat-group{
+    display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:16px; font-weight:700;
+  }
+  .stat{
+    background:#eee6d6; padding:6px 12px; border-radius:10px; min-width:88px; text-align:center;
+  }
+  .stat.timer{ background:#f7ddd0; color:var(--accent); font-variant-numeric:tabular-nums;}
+  .stat.round{ background:#dfe9dd; color:var(--ok);}
+  .stat.score-pop{ animation:pop .4s ease; }
+  @keyframes pop{
+    0%{ transform:scale(1); }
+    40%{ transform:scale(1.18); background:#d7f0dd; }
+    100%{ transform:scale(1); }
+  }
+  #restartBtn{
+    font-size:15px; padding:8px 14px; border-radius:10px; border:none;
+    background:var(--card-back-2); color:#fff; cursor:pointer;
+  }
+  #restartBtn:active{ transform:scale(0.97); }
+
+  #banner{
+    text-align:center; font-size:17px; font-weight:700; color:#fff;
+    background:var(--card-back-2); padding:10px; display:none;
+  }
+
+  #board{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px,1fr));
+    gap:10px;
+    padding:16px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+
+  .card{
+    aspect-ratio:3/4;
+    perspective:800px;
+    cursor:pointer;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .card.matched{ cursor:default; opacity:0; pointer-events:none; transition:opacity .4s ease; }
+  .card-inner{
+    position:relative; width:100%; height:100%;
+    transform-style:preserve-3d;
+    transition:transform .35s ease;
+  }
+  .card.flipped .card-inner{ transform:rotateY(180deg); }
+
+  .card-face{
+    position:absolute; inset:0;
+    border-radius:var(--radius);
+    display:flex; align-items:center; justify-content:center;
+    backface-visibility:hidden;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+    padding:6px;
+    text-align:center;
+  }
+  .card-back{
+    background:linear-gradient(135deg,var(--card-back-1),var(--card-back-2));
+    color:#fff; font-size:28px; font-weight:800;
+  }
+  .card-front{
+    transform:rotateY(180deg);
+    background:var(--panel);
+    border:2px solid #ddd;
+    flex-direction:column;
+    overflow:hidden;
+    font-size:16px;
+    line-height:1.35;
+    font-weight:600;
+  }
+  .card-front.type-name{ font-size:18px; font-weight:800; }
+  .card-front.type-feature{ font-size:16px; font-weight:500; padding:10px; }
+  .card-front.type-photo{ padding:0; }
+  .card-front.type-photo img{ width:100%; height:100%; object-fit:cover; border-radius:calc(var(--radius) - 2px); }
+  .photo-placeholder{
+    width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:calc(var(--radius) - 2px);
+    color:#fff; font-size:14px; font-weight:700; gap:4px;
+  }
+  .photo-placeholder .num{ font-size:26px; }
+
+  .card.correct .card-front{ border-color:var(--ok); border-width:3px; }
+  .card.wrong .card-inner{ animation:shake .35s; }
+  @keyframes shake{
+    0%,100%{ transform:rotateY(180deg) translateX(0); }
+    25%{ transform:rotateY(180deg) translateX(-6px); }
+    75%{ transform:rotateY(180deg) translateX(6px); }
+  }
+
+  #endScreen{
+    display:none;
+    max-width:700px; margin:20px auto; background:var(--panel);
+    border-radius:16px; padding:24px; box-shadow:0 4px 16px rgba(0,0,0,0.12);
+  }
+  #endScreen h2{ margin-top:0; }
+  #endScreen ul{ padding-left:0; list-style:none; }
+  #endScreen li{
+    padding:10px 12px; border-bottom:1px solid #eee; font-size:16px;
+  }
+  #endScreen li b{ color:var(--accent); margin-right:6px; }
+
+  .notice{
+    max-width:1200px; margin:10px auto 0; padding:10px 16px;
+    font-size:14px; color:#777;
+  }
+
+  #startScreen{
+    position:fixed; inset:0; z-index:30;
+    background:linear-gradient(135deg,var(--card-back-1),var(--card-back-2));
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .start-box{
+    background:var(--panel);
+    border-radius:20px;
+    padding:32px 28px;
+    max-width:480px;
+    width:100%;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25);
+    text-align:center;
+  }
+  .start-title{
+    font-size:24px; margin:0 0 8px; color:var(--ink);
+  }
+  .start-sub{
+    font-size:16px; color:#666; margin:0 0 20px;
+  }
+  .rule-list{
+    list-style:none; padding:0; margin:0 0 24px;
+    text-align:left;
+  }
+  .rule-list li{
+    font-size:16px; line-height:1.5;
+    background:#f4f1ea;
+    border-radius:10px;
+    padding:10px 14px;
+    margin-bottom:8px;
+  }
+  .rule-list li b{ color:var(--accent); }
+  #startBtn{
+    font-size:18px; font-weight:700;
+    padding:14px 32px;
+    border:none; border-radius:12px;
+    background:var(--accent); color:#fff;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  #startBtn:active{ transform:scale(0.97); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>남북국시대 문화 매칭 게임</h1>
+  <div class="stat-group">
+    <div class="stat round" id="roundLabel">라운드 1/3</div>
+    <div class="stat timer" id="timerLabel">02:00</div>
+    <div class="stat" id="scoreLabel">맞춘 0/21 · 0점</div>
+    <button id="restartBtn">처음부터</button>
+  </div>
+</header>
+
+<div id="banner"></div>
+
+<div id="startScreen">
+  <div class="start-box">
+    <h2 class="start-title">남북국시대 문화 매칭 게임</h2>
+    <p class="start-sub">신라·발해의 문화유산 21개, 사진·이름·특징을 짝지어보자</p>
+
+    <ul class="rule-list">
+      <li><b>① 카드 3장을 뒤집어서</b> 같은 문화재의 <b>사진 + 이름 + 특징</b>을 찾으면 매칭!</li>
+      <li><b>② 총 3라운드</b>, 라운드마다 7개 항목(21장) · <b>2분</b> 제한</li>
+      <li><b>③ 시간 안에 못 맞춘 건</b> 마지막에 <b>복습 라운드</b>로 다시 나와</li>
+      <li><b>④ 맞출 때마다 +10점</b>, 총 210점 만점</li>
+    </ul>
+
+    <button id="startBtn">게임 시작</button>
+  </div>
+</div>
+
+<div id="board"></div>
+
+<div id="endScreen">
+  <h2>🎉 다 맞췄어! 마지막으로 한 번 더 훑어보자</h2>
+  <p id="finalScore" style="font-size:18px;font-weight:700;color:#c0562c;"></p>
+  <p>아래 목록을 눈으로 한 번 더 읽고 넘어가면 좋아.</p>
+  <ul id="reviewList"></ul>
+  <button id="restartBtn2" style="margin-top:10px;font-size:15px;padding:8px 14px;border-radius:10px;border:none;background:#3f5f82;color:#fff;cursor:pointer;">다시 하기</button>
+</div>
+
+<p class="notice">
+  ※ 사진 카드는 <code>images/01.jpg ~ images/21.jpg</code> 파일이 있으면 자동으로 표시돼. 파일이 없으면 번호가 적힌 임시 카드로 대체돼.
+</p>
+
+<script>
+/* =========================
+   1. 데이터 (3학년_남북국_문화.pdf 근거)
+   ========================= */
+const ITEMS = [
+  {id:1,  name:"불국사", feature:"건물과 탑을 균형 있게 배치해 부처의 나라를 표현한 절"},
+  {id:2,  name:"석굴암", feature:"인공으로 쌓은 석굴 안에 본존불과 보살상을 조각한 절"},
+  {id:3,  name:"경주 감은사지 동서 3층 석탑", feature:"감은사 터에 동서로 나란히 서 있는 두 개의 3층 석탑"},
+  {id:4,  name:"경주 불국사 3층 석탑(석가탑)", feature:"그림자가 비치지 않는다 하여 '무영탑'이라고도 불림"},
+  {id:5,  name:"경주 불국사 다보탑", feature:"일반적인 석탑과 달리 독특하고 화려한 구조를 가진 탑"},
+  {id:6,  name:"무구정광대다라니경", feature:"현재 전하는 것 중 세계에서 가장 오래된 목판 인쇄물"},
+  {id:7,  name:"상원사 동종", feature:"현재 남아 있는 우리나라 범종 중 가장 오래된 종"},
+  {id:8,  name:"성덕대왕신종", feature:"우리나라에 남아 있는 범종 중 가장 크고, 비천상이 새겨진 종"},
+  {id:9,  name:"원효", feature:"화쟁 사상을 주장하고 '나무아미타불'로 불교 대중화에 힘씀"},
+  {id:10, name:"의상", feature:"화엄 사상을 정리하고 부석사를 세운 승려"},
+  {id:11, name:"국학·독서삼품과", feature:"신라의 유학 교육 기관과, 그 성취도로 관리를 뽑던 제도"},
+  {id:12, name:"강수", feature:"외교 문서를 잘 지어 이름을 알린 신라의 학자"},
+  {id:13, name:"설총", feature:"이두를 정리한 신라의 학자"},
+  {id:14, name:"최치원", feature:"당의 빈공과에 합격한 신라의 유학생"},
+  {id:15, name:"상경성", feature:"당의 장안성을 본떠 계획도시로 만든 발해의 수도"},
+  {id:16, name:"정혜공주 묘", feature:"고구려식 굴식 돌방무덤에 모줄임천장 구조를 가진 발해의 무덤"},
+  {id:17, name:"정효공주 묘", feature:"벽돌로 만들었지만 천장은 고구려 양식을 이어받은 발해의 무덤"},
+  {id:18, name:"발해 삼채", feature:"당의 기법을 받아들여 세 가지 유약으로 색을 낸 도자기"},
+  {id:19, name:"발해 석등", feature:"발해 상경성 절터에 남아 있는 거대한 석등"},
+  {id:20, name:"영광탑", feature:"현재 유일하게 남아 있는 발해의 벽돌 탑"},
+  {id:21, name:"주자감", feature:"발해의 유학 교육 기관"},
+];
+const TOTAL = ITEMS.length;
+const ROUND_SECONDS = 120; // 본 라운드(1~3) 각각 2분. 필요하면 이 숫자만 바꾸면 됨
+const POINTS_PER_MATCH = 10;
+
+// 3라운드 구성: 매 게임 시작(initGame)마다 21개를 섞어서 7개씩 랜덤 분할
+// -> 라운드 순서(1/2/3)에 어떤 항목이 들어가는지도 학생/시도마다 달라짐
+let GROUPS = [];
+function buildGroups(){
+  const shuffledItems = shuffle(ITEMS);
+  return [
+    shuffledItems.slice(0, 7),
+    shuffledItems.slice(7, 14),
+    shuffledItems.slice(14, 21),
+  ];
+}
+
+/* =========================
+   2. 상태
+   ========================= */
+let matchedIds = new Set();
+let currentPool = [];
+let flipped = [];
+let locked = false;
+let stage = "r1";        // 'r1' | 'r2' | 'r3' | 'review'
+let timerId = null;
+let timeLeft = 0;
+let score = 0;
+let reviewNeeded = [];   // 각 본 라운드 타임아웃 시 못 맞춘 항목이 쌓이는 목록
+
+const boardEl = document.getElementById("board");
+const timerLabel = document.getElementById("timerLabel");
+const roundLabel = document.getElementById("roundLabel");
+const scoreLabel = document.getElementById("scoreLabel");
+const bannerEl = document.getElementById("banner");
+const endScreen = document.getElementById("endScreen");
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function placeholderColor(id){
+  const hue = (id * 47) % 360;
+  return `hsl(${hue}, 45%, 55%)`;
+}
+
+/* =========================
+   3. 라운드 빌드
+   ========================= */
+function buildRound(items){
+  boardEl.innerHTML = "";
+  flipped = [];
+  locked = false;
+
+  let cards = [];
+  items.forEach(item=>{
+    cards.push({uid:item.id+"-photo",   itemId:item.id, type:"photo"});
+    cards.push({uid:item.id+"-name",    itemId:item.id, type:"name"});
+    cards.push({uid:item.id+"-feature", itemId:item.id, type:"feature"});
+  });
+  cards = shuffle(cards);
+
+  cards.forEach(c=>{
+    const item = ITEMS.find(i=>i.id===c.itemId);
+    const cardEl = document.createElement("div");
+    cardEl.className = "card";
+    cardEl.dataset.uid = c.uid;
+    cardEl.dataset.itemId = c.itemId;
+    cardEl.dataset.type = c.type;
+
+    const inner = document.createElement("div");
+    inner.className = "card-inner";
+
+    const back = document.createElement("div");
+    back.className = "card-face card-back";
+    back.textContent = "역사";
+
+    const front = document.createElement("div");
+    front.className = "card-face card-front type-" + c.type;
+
+    if(c.type === "photo"){
+      const img = document.createElement("img");
+      img.src = `images/${String(item.id).padStart(2,"0")}.jpg`;
+      img.alt = "문화재 사진";
+      img.onerror = function(){
+        front.innerHTML = "";
+        const ph = document.createElement("div");
+        ph.className = "photo-placeholder";
+        ph.style.background = placeholderColor(item.id);
+        ph.innerHTML = `<div class="num">${item.id}</div><div>사진 준비중</div>`;
+        front.appendChild(ph);
+      };
+      front.appendChild(img);
+    } else if(c.type === "name"){
+      front.textContent = item.name;
+    } else {
+      front.textContent = item.feature;
+    }
+
+    inner.appendChild(back);
+    inner.appendChild(front);
+    cardEl.appendChild(inner);
+    cardEl.addEventListener("click", ()=>onCardClick(cardEl));
+    boardEl.appendChild(cardEl);
+  });
+}
+
+/* =========================
+   4. 클릭 / 매칭 로직
+   ========================= */
+function onCardClick(cardEl){
+  if(locked) return;
+  if(cardEl.classList.contains("flipped") || cardEl.classList.contains("matched")) return;
+  if(flipped.length >= 3) return;
+
+  cardEl.classList.add("flipped");
+  flipped.push(cardEl);
+
+  if(flipped.length === 3){
+    locked = true;
+    setTimeout(checkMatch, 500);
+  }
+}
+
+function checkMatch(){
+  const ids = flipped.map(c=>c.dataset.itemId);
+  const isMatch = ids[0]===ids[1] && ids[1]===ids[2];
+
+  if(isMatch){
+    flipped.forEach(c=>{
+      c.classList.add("correct");
+      setTimeout(()=> c.classList.add("matched"), 250);
+    });
+    matchedIds.add(Number(ids[0]));
+    score += POINTS_PER_MATCH;
+    updateScore(true);
+  } else {
+    flipped.forEach(c=> c.classList.add("wrong"));
+    setTimeout(()=>{
+      flipped.forEach(c=>{
+        c.classList.remove("flipped","wrong");
+      });
+    }, 500);
+  }
+
+  setTimeout(()=>{
+    flipped = [];
+    locked = false;
+    checkRoundComplete();
+  }, 550);
+}
+
+function updateScore(justScored){
+  scoreLabel.textContent = `맞춘 ${matchedIds.size}/${TOTAL} · ${score}점`;
+  if(justScored){
+    scoreLabel.classList.remove("score-pop");
+    void scoreLabel.offsetWidth; // 리플레이를 위한 강제 리플로우
+    scoreLabel.classList.add("score-pop");
+  }
+}
+
+function checkRoundComplete(){
+  const allMatchedInRound = currentPool.every(item => matchedIds.has(item.id));
+  if(allMatchedInRound){
+    if(timerId) clearInterval(timerId);
+    showBanner("🎉 라운드 완료!", ()=> advanceStage());
+  }
+}
+
+/* =========================
+   5. 타이머 (본 라운드 1~3 전용, 복습 라운드는 타이머 없음)
+   ========================= */
+function startTimer(seconds){
+  timeLeft = seconds;
+  updateTimerLabel();
+  timerId = setInterval(()=>{
+    timeLeft--;
+    updateTimerLabel();
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      onRoundTimeUp();
+    }
+  }, 1000);
+}
+
+function updateTimerLabel(){
+  const m = String(Math.floor(timeLeft/60)).padStart(2,"0");
+  const s = String(timeLeft%60).padStart(2,"0");
+  timerLabel.textContent = `${m}:${s}`;
+}
+
+function onRoundTimeUp(){
+  locked = true;
+  const leftover = currentPool.filter(item => !matchedIds.has(item.id));
+  reviewNeeded.push(...leftover);
+
+  const text = leftover.length > 0
+    ? `⏰ 시간 종료! ${leftover.length}개는 나중에 복습 라운드에서 다시 도전해`
+    : "⏰ 시간 종료!";
+  showBanner(text, ()=> advanceStage());
+}
+
+/* =========================
+   6. 라운드 전환 / 배너
+   ========================= */
+function showBanner(text, cb){
+  bannerEl.textContent = text;
+  bannerEl.style.display = "block";
+  setTimeout(()=>{
+    bannerEl.style.display = "none";
+    cb && cb();
+  }, 1500);
+}
+
+function advanceStage(){
+  if(stage === "r1"){ startStage("r2"); }
+  else if(stage === "r2"){ startStage("r3"); }
+  else if(stage === "r3"){
+    if(reviewNeeded.length > 0) startStage("review");
+    else finishGame();
+  } else if(stage === "review"){
+    finishGame();
+  }
+}
+
+function startStage(newStage){
+  stage = newStage;
+
+  if(stage === "r1" || stage === "r2" || stage === "r3"){
+    const idx = {r1:0, r2:1, r3:2}[stage];
+    currentPool = GROUPS[idx];
+    roundLabel.textContent = `라운드 ${idx+1}/3`;
+    timerLabel.style.display = "inline-block";
+    buildRound(currentPool);
+    startTimer(ROUND_SECONDS);
+  } else if(stage === "review"){
+    const seen = new Set();
+    currentPool = reviewNeeded.filter(item=>{
+      if(matchedIds.has(item.id) || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+    roundLabel.textContent = "복습 라운드";
+    timerLabel.style.display = "none";
+    if(timerId) clearInterval(timerId);
+    if(currentPool.length === 0){
+      finishGame();
+      return;
+    }
+    buildRound(currentPool);
+  }
+}
+
+/* =========================
+   7. 종료 화면
+   ========================= */
+function finishGame(){
+  if(timerId) clearInterval(timerId);
+  boardEl.innerHTML = "";
+  endScreen.style.display = "block";
+  document.getElementById("finalScore").textContent =
+    `총점 ${score}/${TOTAL * POINTS_PER_MATCH}점 (맞춘 개수 ${matchedIds.size}/${TOTAL})`;
+  const list = document.getElementById("reviewList");
+  list.innerHTML = "";
+  ITEMS.forEach(item=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<b>${item.name}</b>${item.feature}`;
+    list.appendChild(li);
+  });
+}
+
+/* =========================
+   8. 초기화 / 재시작
+   ========================= */
+function initGame(){
+  matchedIds = new Set();
+  reviewNeeded = [];
+  score = 0;
+  GROUPS = buildGroups();
+  updateScore(false);
+  endScreen.style.display = "none";
+  startStage("r1");
+}
+
+document.getElementById("restartBtn").addEventListener("click", initGame);
+document.getElementById("restartBtn2").addEventListener("click", initGame);
+document.getElementById("startBtn").addEventListener("click", ()=>{
+  document.getElementById("startScreen").style.display = "none";
+  initGame();
+});
+</script>
+</body>
+</html>
