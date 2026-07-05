@@ -246,17 +246,17 @@ const ITEMS = [
   {id:8,  name:"성덕대왕신종", feature:"우리나라에 남아 있는 범종 중 가장 크고, 비천상이 새겨진 종"},
   {id:9,  name:"원효", feature:"화쟁 사상을 주장하고 '나무아미타불'로 불교 대중화에 힘씀"},
   {id:10, name:"의상", feature:"화엄 사상을 정리하고 부석사를 세운 승려"},
-  {id:11, name:"국학·독서삼품과", feature:"신라의 유학 교육 기관과, 그 성취도로 관리를 뽑던 제도"},
-  {id:12, name:"강수", feature:"외교 문서를 잘 지어 이름을 알린 신라의 학자"},
-  {id:13, name:"설총", feature:"이두를 정리한 신라의 학자"},
-  {id:14, name:"최치원", feature:"당의 빈공과에 합격한 신라의 유학생"},
+  {id:11, name:"왕오천축국전", feature:"승려 혜초가 인도와 중앙아시아를 순례하고 쓴 여행 기록"},
+  {id:12, name:"원성왕릉 무인석", feature:"터번과 곱슬머리 등 서역인의 모습을 한 통일 신라 무덤의 석상"},
+  {id:13, name:"청해진", feature:"장보고가 완도에 설치해 해적을 소탕하고 해상 무역을 장악한 진"},
+  {id:14, name:"발해 토기", feature:"고구려 토기와 나란히 비교되며 발해 문화의 계승 관계를 보여주는 유물"},
   {id:15, name:"상경성", feature:"당의 장안성을 본떠 계획도시로 만든 발해의 수도"},
   {id:16, name:"정혜공주 묘", feature:"고구려식 굴식 돌방무덤에 모줄임천장 구조를 가진 발해의 무덤"},
   {id:17, name:"정효공주 묘", feature:"벽돌로 만들었지만 천장은 고구려 양식을 이어받은 발해의 무덤"},
   {id:18, name:"발해 삼채", feature:"당의 기법을 받아들여 세 가지 유약으로 색을 낸 도자기"},
   {id:19, name:"발해 석등", feature:"발해 상경성 절터에 남아 있는 거대한 석등"},
   {id:20, name:"영광탑", feature:"현재 유일하게 남아 있는 발해의 벽돌 탑"},
-  {id:21, name:"주자감", feature:"발해의 유학 교육 기관"},
+  {id:21, name:"발해 치미", feature:"고구려 치미와 닮은 모습으로 발해·고구려 문화의 연관성을 보여주는 지붕 장식"},
 ];
 const TOTAL = ITEMS.length;
 const ROUND_SECONDS = 120; // 본 라운드(1~3) 각각 2분. 필요하면 이 숫자만 바꾸면 됨
@@ -324,7 +324,7 @@ function buildRound(items){
   });
   cards = shuffle(cards);
 
-  cards.forEach(c=>{
+  cards.forEach((c, index)=>{
     const item = ITEMS.find(i=>i.id===c.itemId);
     const cardEl = document.createElement("div");
     cardEl.className = "card";
@@ -337,7 +337,7 @@ function buildRound(items){
 
     const back = document.createElement("div");
     back.className = "card-face card-back";
-    back.textContent = "역사";
+    back.textContent = index + 1; // 정답과 무관한 "이 라운드의 카드 자리 번호" (1~21). 반 전체 진행할 때 "몇 번 카드" 식으로 부르기 편하도록.
 
     const front = document.createElement("div");
     front.className = "card-face card-front type-" + c.type;
